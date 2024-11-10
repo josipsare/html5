@@ -86,7 +86,38 @@ function collisionDetection() {
             }
         }
     }
+
+    // Provjera sudara s palicom
+    if (ballY + ballRadius > canvas.height - paddleHeight) {
+        if (ballX > paddleX && ballX < paddleX + paddleWidth) {
+            // Izračunaj relativnu poziciju lopte u odnosu na sredinu palice
+            let relativeX = ballX - (paddleX + paddleWidth / 2);
+            let normalizedX = relativeX / (paddleWidth / 2); // Normaliziraj poziciju (od -1 do 1)
+
+            // Ako lopta pogodi 10% lijevog ili desnog dijela palice, promijeni kut
+            if (ballX < paddleX + paddleWidth * 0.2) { // Lijevi 10%
+                normalizedX = -1; // Odbijanje pod velikim kutom
+            } else if (ballX > paddleX + paddleWidth * 0.8) { // Desni 10%
+                normalizedX = 1; // Odbijanje pod velikim kutom
+            } else {
+                normalizedX = 0; // Središnji dio palice, normalan kut
+            }
+
+            // Promjena smjera lopte prema brzini palice i relativnoj poziciji
+            ballSpeedY = -ballSpeedY; // Odbija se prema gore
+
+            // Kut odbijanja na temelju pozicije lopte na palici
+            let angle = normalizedX * Math.PI / 4; // Maksimalni kut je 45 stupnjeva (u radijanima)
+            ballSpeedX = 5 * Math.sin(angle); // Horizontalna brzina (modificirana s kutom)
+            ballSpeedY = -5 * Math.cos(angle); // Vertikalna brzina (povećana prema kutu)
+
+        } else {
+            gameOver = true;
+        }
+    }
 }
+
+
 
 
 
