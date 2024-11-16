@@ -1,36 +1,43 @@
-// Definicije canvas objekta i konteksta
+//Postavljanje canvasa i konteksta
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+
+//Ucitavanje zvukova za razbijanje cigli i za odbijanje loptice od palicu
+const brickBreakSound = new Audio('brick.mp3');
+const ballBouncing = new Audio('odbijanje.mp3');
 
 // Dimenzije kanvasa
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
 // Konfiguracije igre
-const brickRowCount = 8; // Broj redova cigli
-const brickColumnCount = 18; // Broj stupaca cigli
+const brickRowCount = 8;
+const brickColumnCount = 18;
 const brickWidth = 75;
 const brickHeight = 20;
-const brickPadding = 10;
+const brickPadding = 8;
 const brickOffsetTop = 30;
 const brickOffsetLeft = 30;
-
+//Postavljanje dimenzije loptice i palice
 const paddleHeight = 10;
-const paddleWidth = 200;
+const paddleWidth = 1000;
 const ballRadius = 10;
 let paddleX = (canvas.width - paddleWidth) / 2;
 
-// Kreiranje objekata za igru
+// Kreiranje i postavljanje parametara za igru
 let ballX = canvas.width / 2;
 let ballY = canvas.height - 30;
-let ballSpeedX = 2;
-let ballSpeedY = -2;
+let ballSpeedX = 3;
+let ballSpeedY = -3;
 let gameOver = false;
+let gameWon = false;
+
+//Generiranje cigli
 let bricks = [];
 for (let c = 0; c < brickColumnCount; c++) {
     bricks[c] = [];
     for (let r = 0; r < brickRowCount; r++) {
-        bricks[c][r] = { x: 0, y: 0, status: 1 }; // status 1 = cigla postoji
+        bricks[c][r] = { x: 0, y: 0, status: 1 };
     }
 }
 
@@ -39,87 +46,70 @@ let highScore = localStorage.getItem("highScore") || 0;
 let rightPressed = false;
 let leftPressed = false;
 
+//Fukcija detekciju sudara loptice s ciglama i sa palicom, gdje se u obzir uzima strana udara.
+//Pri uspješnom pogotku score se povecava i igrac cuje zvuk.
+//Provjerava se jeli igrac unistio sve loptice i ako je poziva se funckija za prikazivanje GAME WON
 function collisionDetection() {
     for (let c = 0; c < brickColumnCount; c++) {
         for (let r = 0; r < brickRowCount; r++) {
             let brick = bricks[c][r];
             if (brick.status === 1) {
-                // Koordinate cigle
                 let brickLeft = brick.x;
                 let brickRight = brick.x + brickWidth;
                 let brickTop = brick.y;
                 let brickBottom = brick.y + brickHeight;
 
-                // Provjera sudara s lopte uzimajući u obzir radijus
                 if (
                     ballX + ballRadius > brickLeft &&
                     ballX - ballRadius < brickRight &&
                     ballY + ballRadius > brickTop &&
                     ballY - ballRadius < brickBottom
                 ) {
-                    // Detekcija stranice sudara
                     let ballFromLeft = ballX - ballRadius < brickLeft;
                     let ballFromRight = ballX + ballRadius > brickRight;
                     let ballFromTop = ballY - ballRadius < brickTop;
                     let ballFromBottom = ballY + ballRadius > brickBottom;
 
-                    // Promijeni smjer brzine ovisno o strani sudara
                     if (ballFromLeft || ballFromRight) {
-                        ballSpeedX = -ballSpeedX; // Sudar s lijeve ili desne strane cigle
+                        ballSpeedX = -ballSpeedX;
                     }
                     if (ballFromTop || ballFromBottom) {
-                        ballSpeedY = -ballSpeedY; // Sudar s gornje ili donje strane cigle
+                        ballSpeedY = -ballSpeedY;
                     }
 
-                    // Deaktiviraj ciglu i povećaj rezultat
                     brick.status = 0;
                     score++;
+
+                    brickBreakSound.currentTime = 0.1;
+                    brickBreakSound.play();
+
                     if (score > highScore) {
                         highScore = score;
                         localStorage.setItem("highScore", highScore);
                     }
+
                     if (score === brickRowCount * brickColumnCount) {
-                        alert("Čestitamo! Pobijedili ste!");
-                        document.location.reload();
+                        gameOver = true;
+                        gameWon = true;
                     }
                 }
             }
         }
     }
 
-    // Provjera sudara s palicom
+    //Dio funkcije koji obraduje odbijanje od palicu te provjeru jeli loptica promasila palicu
+    //tj jeli igra izgubljena, ako da poziva se pripadajuca funckija
     if (ballY + ballRadius > canvas.height - paddleHeight) {
         if (ballX > paddleX && ballX < paddleX + paddleWidth) {
-            // Izračunaj relativnu poziciju lopte u odnosu na sredinu palice
-            let relativeX = ballX - (paddleX + paddleWidth / 2);
-            let normalizedX = relativeX / (paddleWidth / 2); // Normaliziraj poziciju (od -1 do 1)
-
-            // Ako lopta pogodi 10% lijevog ili desnog dijela palice, promijeni kut
-            if (ballX < paddleX + paddleWidth * 0.25) { // Lijevi 10%
-                normalizedX = -1; // Odbijanje pod velikim kutom
-            } else if (ballX > paddleX + paddleWidth * 0.75) { // Desni 10%
-                normalizedX = 1; // Odbijanje pod velikim kutom
-            } else {
-                normalizedX = 0; // Središnji dio palice, normalan kut
-            }
-
-            // Promjena smjera lopte prema brzini palice i relativnoj poziciji
-            ballSpeedY = -ballSpeedY; // Odbija se prema gore
-
-            // Kut odbijanja na temelju pozicije lopte na palici
-            let angle = normalizedX * Math.PI / 4; // Maksimalni kut je 45 stupnjeva (u radijanima)
-            ballSpeedX = 5 * Math.sin(angle); // Horizontalna brzina (modificirana s kutom)
-            ballSpeedY = -5 * Math.cos(angle); // Vertikalna brzina (povećana prema kutu)
-
+            ballBouncing.currentTime = 0.1;
+            ballBouncing.play();
+            ballSpeedY=-ballSpeedY
+            ballSpeedX=ballSpeedX;
         } else {
             gameOver = true;
         }
     }
 }
-
-
-
-
 
 // Kontrole za upravljanje palicom
 function keyDownHandler(e) {
@@ -152,18 +142,16 @@ function drawPaddle() {
     ctx.beginPath();
     ctx.rect(paddleX, canvas.height - paddleHeight, paddleWidth, paddleHeight);
 
-    // Apply shadow properties
-    ctx.shadowColor = "rgba(0, 0, 0, 0.5)"; // Shadow color (black with some transparency)
-    ctx.shadowBlur = 10; // Shadow blur intensity
-    ctx.shadowOffsetX = 0; // Shadow horizontal offset
-    ctx.shadowOffsetY = 5; // Shadow vertical offset
+    ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 5;
 
-    ctx.fillStyle = "red"; // Paddle color
+    ctx.fillStyle = "red";
     ctx.fill();
     ctx.closePath();
 
-    // Reset shadow for other elements
-    ctx.shadowColor = "transparent"; // Reset shadow after drawing the paddle
+    ctx.shadowColor = "transparent";
 }
 
 
@@ -180,21 +168,19 @@ function drawBricks() {
                 ctx.beginPath();
                 ctx.rect(brickX, brickY, brickWidth, brickHeight);
 
-                // Apply shadow properties
-                ctx.shadowColor = "rgba(0, 0, 0, 0.5)"; // Shadow color (black with some transparency)
-                ctx.shadowBlur = 5; // Shadow blur intensity
-                ctx.shadowOffsetX = 0; // Shadow horizontal offset
-                ctx.shadowOffsetY = 5; // Shadow vertical offset
+                ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+                ctx.shadowBlur = 5;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 5;
 
-                ctx.fillStyle = "#0095DD"; // Brick color
+                ctx.fillStyle = "#0095DD";
                 ctx.fill();
                 ctx.closePath();
             }
         }
     }
 
-    // Reset shadow for other elements
-    ctx.shadowColor = "transparent"; // Reset shadow after drawing bricks
+    ctx.shadowColor = "transparent";
 }
 
 
@@ -206,49 +192,62 @@ function drawScore() {
     ctx.fillText("High Score: " + highScore, canvas.width - 120, 20);
 }
 
-// Glavna funkcija za crtanje igre
+//Funkcija za crtanje GAME OVER
 function displayGameOver() {
     ctx.font = "48px Arial";
     ctx.fillStyle = "red";
     ctx.textAlign = "center";
     ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2);
 }
-
+//Funkcija za crtanje GAME WON
+function displayGameWon() {
+    ctx.font = "48px Arial";
+    ctx.fillStyle = "green";
+    ctx.textAlign = "center";
+    ctx.fillText("GAME WON", canvas.width / 2, canvas.height / 2);
+}
+//Funckija koja odreduje pocetni kut i brzinu lopte, s tim da se vodi racuna da pocetni kut nebi bio blizu 90 stupnjeva jer onda igra nebi bila zabavna
 function setInitialBallDirection() {
-    let minAngle = 30; // Minimalni kut (prema gore lijevo)
-    let maxAngle = 150; // Maksimalni kut (prema gore desno)
+    let minAngle = 30;
+    let maxAngle = 150;
+    let deadZoneMin = 85;
+    let deadZoneMax = 95;
 
-    // Generiraj slučajni kut u stupnjevima između minAngle i maxAngle
-    let angleInDegrees = Math.random() * (maxAngle - minAngle) + minAngle;
+    let angleInDegrees;
+    do {
+        angleInDegrees = Math.random() * (maxAngle - minAngle) + minAngle;
+    } while (angleInDegrees > deadZoneMin && angleInDegrees < deadZoneMax);
 
-    // Pretvori kut u radijane
     let angleInRadians = angleInDegrees * (Math.PI / 180);
 
-    // Postavi početne komponente brzine lopte
-    let initialSpeed = 5; // Početna brzina lopte
+    let initialSpeed = 6;
     ballSpeedX = initialSpeed * Math.cos(angleInRadians);
-    ballSpeedY = -initialSpeed * Math.sin(angleInRadians); // Negativna vrijednost jer ide prema gore
+    ballSpeedY = -initialSpeed * Math.sin(angleInRadians);
 }
 
-// Glavna funkcija za crtanje igre
+// Glavna petlja igre
 function draw() {
-    // Očistite canvas
+    //na pocetku se sve ocisti
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Provjerite je li igra gotova
+    //provjerava se jeli igra gotova, na jedan od dva nacina
     if (gameOver) {
-        displayGameOver();
-        return; // Prekinite izvođenje ostatka koda u draw() funkciji
+        if (gameWon) {
+            displayGameWon();
+        } else {
+            displayGameOver();
+        }
+        return;
     }
 
+    //ukoliko nije, crtaju se cigle, loptica, palica, rezultat i nastavlja se sa detekcijom sudara
     drawBricks();
     drawBall();
     drawPaddle();
     drawScore();
     collisionDetection();
 
-    // Logika za odbijanje lopte
-    // Kolizija s rubovima
+    // Logika za odbijanje lopte od stranice canvasa tj ekrana
     if (ballX + ballSpeedX > canvas.width - ballRadius || ballX + ballSpeedX < ballRadius) {
         ballSpeedX = -ballSpeedX;
     }
@@ -271,29 +270,25 @@ function draw() {
         paddleX -= 7;
     }
 
+    //ponavaljnje animacije pri 60FPS
     requestAnimationFrame(draw);
 }
 
-// Funkcija za prilagodbu veličine kanvasa
+// Funkcija za prilagodbu veličine canvasa, najvise koristena pri debuggiranju
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // Ažurirajte pozicije elemenata koji ovise o veličini kanvasa
     paddleX = (canvas.width - paddleWidth) / 2;
     ballX = canvas.width / 2;
     ballY = canvas.height - 30;
 }
 
-// Pokreni funkciju resizeCanvas jednom na početku
+// Pokretanje funkciju resizeCanvas jednom na početku
 resizeCanvas();
 
-// Poveži funkciju resizeCanvas s događajem promjene veličine prozora
+//postavljanje event listenera za mijenjanje velicina prozora te za pritisak tipki
 window.addEventListener('resize', resizeCanvas);
-
-// Ostatak koda ostaje isti
-
-// Event listeneri za kontrolu igre
 document.addEventListener("keydown", keyDownHandler);
 document.addEventListener("keyup", keyUpHandler);
 
