@@ -20,7 +20,7 @@ const brickOffsetTop = 30;
 const brickOffsetLeft = 30;
 //Postavljanje dimenzije loptice i palice
 const paddleHeight = 10;
-const paddleWidth = 1000;
+const paddleWidth = 300;
 const ballRadius = 10;
 let paddleX = (canvas.width - paddleWidth) / 2;
 
@@ -128,7 +128,7 @@ function keyUpHandler(e) {
     }
 }
 
-// Funkcija za crtanje lopte
+// Funkcija za crtanje lopte s odgovarajucom bojom
 function drawBall() {
     ctx.beginPath();
     ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
@@ -137,7 +137,7 @@ function drawBall() {
     ctx.closePath();
 }
 
-// Funkcija za crtanje palice
+// Funkcija za crtanje palice odredenih dimenzija, dodavanje sjene i boje
 function drawPaddle() {
     ctx.beginPath();
     ctx.rect(paddleX, canvas.height - paddleHeight, paddleWidth, paddleHeight);
@@ -165,6 +165,7 @@ function drawBricks() {
                 bricks[c][r].x = brickX;
                 bricks[c][r].y = brickY;
 
+                //crtanje pravokutnika odredenih dimnezija, dodavanje sjene i boje
                 ctx.beginPath();
                 ctx.rect(brickX, brickY, brickWidth, brickHeight);
 
